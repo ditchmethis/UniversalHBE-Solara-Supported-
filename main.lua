@@ -7,10 +7,6 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
-if not getgenv().MTAPIMutex then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/MT-Api-v2/main/__source/mt-api%20v2.lua", true))()
-end
---[[ loadstring(game:HttpGet("https://raw.githubusercontent.com/LegoHacker1337/legohacks/main/PhysicsServiceOnClient.lua"))() ]]
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/Library.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/RectangularObject/LinoriaLib/main/addons/SaveManager.lua"))()
 SaveManager:SetLibrary(Library)
@@ -18,7 +14,6 @@ SaveManager:SetFolder("FurryHBE")
 
 local Teams = game:GetService("Teams")
 local Players = game:GetService("Players")
---[[ local PhysicsService = game:GetService("PhysicsService") ]]
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,11 +23,6 @@ local lPlayer = Players.LocalPlayer
 local players = {}
 local entities = {}
 local teamModule = nil
-
---[[ PhysicsService:CreateCollisionGroup("furryCollisions")
-for _, v in pairs(PhysicsService:GetCollisionGroups()) do
-	PhysicsService:CollisionGroupSetCollidable(PhysicsService:GetCollisionGroupName(v.id), "furryCollisions", false)
-end ]]
 
 local function updatePlayers()
 	if not getgenv().FurryHBELoaded then return end
@@ -238,90 +228,94 @@ local function addPlayer(player)
 		Toggles.ignoreSelectedPlayersToggled.Value and table.find(Options.ignorePlayerList:GetActiveValues(), tostring(player.Name))
 	end
 
-	-- hbe
-
 	local debounce = false
 	local function setup(part)
-		defaultProperties[part.Name] = {}
-		local properties = defaultProperties[part.Name]
-		properties.Size = part.Size
-		properties.Transparency = part.Transparency
-		properties.Massless = part.Massless
-		properties.CanCollide = part.CanCollide
-		properties.CollisionGroupId = part.CollisionGroupId
-		local getSizeHook = part:AddGetHook("Size", properties.Size)
-		local getTransparencyHook = part:AddGetHook("Transparency", properties.Transparency)
-		local getMasslessHook = part:AddGetHook("Massless", properties.Massless)
-		local getCanCollideHook = part:AddGetHook("CanCollide", properties.CanCollide)
-		--[[ local getCollisionGroupHook = part:AddGetHook("CollisionGroupId", properties.CollisionGroupId) ]]
-		local setSizeHook = part:AddSetHook("Size", function(_, value)
-			properties.Size = value
-			getSizeHook:Modify("Size", properties.Size)
-			if Toggles.extenderToggled.Value then
-				local size = Options.extenderSize.Value
-				return Vector3.new(size, size, size)
-			end
-			return properties.Size
-		end)
-		local setTransparencyHook = part:AddSetHook("Transparency", function(_, value)
-			properties.Transparency = value
-			getTransparencyHook:Modify("Transparency", properties.Transparency)
-			if Toggles.extenderToggled.Value then
-				return Options.extenderTransparency.Value
-			end
-			return properties.Transparency
-		end)
-		local setMasslessHook = part:AddSetHook("Massless", function(_, value)
-			properties.Massless = value
-			getMasslessHook:Modify("Massless", properties.Massless)
-			if Toggles.extenderToggled.Value then
-				if part.Name ~= "HumanoidRootPart" then
-					return true
-				end
-			end
-			return properties.Massless
-		end)
-		local setCanCollideHook = part:AddSetHook("CanCollide", function(_, value)
-			properties.CanCollide = value
-			getCanCollideHook:Modify("CanCollide", properties.CanCollide)
-			if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
-				if part.Name == "Head" or part.Name == "HumanoidRootPart" then
-					return false
-				end
-			end
-			return properties.CanCollide
-		end)
-		--[[ local setCollisionGroupId = part:AddSetHook("CollisionGroupId", function(_, value)
-			properties.CollisionGroupId = value
-			getCollisionGroupHook:Modify("CollisionGroupId", properties.CollisionGroupId)
-			if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
-				return PhysicsService:GetCollisionGroupId("furryCollisions")
-			end
-			return properties.CollisionGroupId
-		end) ]]
-		local changed = part.Changed:Connect(function(property) -- __namecall isn't replicated to the client when called from a serverscript
-			if debounce then return end
-			if properties[property] then
-				if properties[property] ~= part[property] then
-					properties[property] = part[property]
-				end
-				playerIdx:Update()
-			end
-		end)
-		part.Destroying:Connect(function()
-			getSizeHook:Remove()
-			getTransparencyHook:Remove()
-			getMasslessHook:Remove()
-			getCanCollideHook:Remove()
-			--getCollisionGroupHook:Remove()
-			setSizeHook:Remove()
-			setTransparencyHook:Remove()
-			setMasslessHook:Remove()
-			setCanCollideHook:Remove()
-			--setCollisionGroupId:Remove()
-			changed:Disconnect()
-		end)
-	end
+    defaultProperties[part.Name] = {}
+    local properties = defaultProperties[part.Name]
+    properties.Size = part.Size
+    properties.Transparency = part.Transparency
+    properties.Massless = part.Massless
+    properties.CanCollide = part.CanCollide
+    properties.CollisionGroupId = part.CollisionGroupId
+
+    local function onAttributeChanged(attribute, value)
+        if attribute == "Size" then
+            properties.Size = value
+        elseif attribute == "Transparency" then
+            properties.Transparency = value
+        elseif attribute == "Massless" then
+            properties.Massless = value
+        elseif attribute == "CanCollide" then
+            properties.CanCollide = value
+        elseif attribute == "CollisionGroupId" then
+            properties.CollisionGroupId = value
+        end
+        playerIdx:Update()
+    end
+
+    local attributeChangedConnection
+    attributeChangedConnection = part.AttributeChanged:Connect(onAttributeChanged)
+
+    local function setSize(value)
+        if Toggles.extenderToggled.Value then
+            local size = Options.extenderSize.Value
+            part.Size = Vector3.new(size, size, size)
+        else
+            part.Size = value
+        end
+    end
+
+    local function setTransparency(value)
+        if Toggles.extenderToggled.Value then
+            part.Transparency = Options.extenderTransparency.Value
+        else
+            part.Transparency = value
+        end
+    end
+
+    local function setMassless(value)
+        if Toggles.extenderToggled.Value then
+            if part.Name ~= "HumanoidRootPart" then
+                part.Massless = true
+            else
+                part.Massless = value
+            end
+        else
+            part.Massless = value
+        end
+    end
+
+    local function setCanCollide(value)
+        if Toggles.extenderToggled.Value and not Toggles.collisionsToggled.Value then
+            if part.Name == "Head" or part.Name == "HumanoidRootPart" then
+                part.CanCollide = false
+            else
+                part.CanCollide = value
+            end
+        else
+            part.CanCollide = value
+        end
+    end
+
+    part.Changed:Connect(function(property)
+        if debounce then return end
+        if property == "Size" then
+            setSize(part.Size)
+        elseif property == "Transparency" then
+            setTransparency(part.Transparency)
+        elseif property == "Massless" then
+            setMassless(part.Massless)
+        elseif property == "CanCollide" then
+            setCanCollide(part.CanCollide)
+        end
+    end)
+
+    part.Destroying:Connect(function()
+        if attributeChangedConnection then
+                attributeChangedConnection:Disconnect()
+            end
+        end)
+    end
 
 	local function isActive(part)
 		local name = part.Name
@@ -403,7 +397,7 @@ local function addPlayer(player)
 	end
 
 	local nameEsp = Drawing.new("Text"); nameEsp.Center = true; nameEsp.Outline = true
-	local chams = Instance.new("Highlight");chams.Parent = game:GetService("CoreGui")
+	local chams = Instance.new("Highlight");chams.Parent = game:GetService("CoreGui")   
 	function playerIdx:UpdateESP()
 		if not playerChar or isIgnored() or isDead() then nameEsp.Visible = false; chams.Enabled = false return end
 		if Toggles.espNameToggled.Value then
