@@ -310,7 +310,7 @@ local function addPlayer(player)
         end
     end)
 
-    part.Destroying:Connect(function()
+    part.Destroyed:Connect(function()
         if attributeChangedConnection then
                 attributeChangedConnection:Disconnect()
             end
