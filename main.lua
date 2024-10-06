@@ -310,12 +310,14 @@ local function addPlayer(player)
         end
     end)
 
-    part.Destroyed:Connect(function()
-        if attributeChangedConnection then
+    part.AncestryChanged:Connect(function(child, parent)
+        if parent == nil then
+            if attributeChangedConnection then
                 attributeChangedConnection:Disconnect()
             end
-        end)
-    end
+    	end
+    end)
+
 
 	local function isActive(part)
 		local name = part.Name
