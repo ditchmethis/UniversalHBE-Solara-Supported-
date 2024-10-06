@@ -315,9 +315,10 @@ local function addPlayer(player)
             if attributeChangedConnection then
                 attributeChangedConnection:Disconnect()
             end
-    	end
+        end
     end)
 
+    end
 
 	local function isActive(part)
 		local name = part.Name
